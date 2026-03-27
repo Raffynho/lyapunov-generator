@@ -13,7 +13,6 @@
 
 using namespace std;
 
-// Struttura semplice per i colori RGB
 struct Color {
     uint8_t r, g, b;
 };
@@ -31,11 +30,9 @@ public:
     LyapunovGenerator(int w, int h, int iter, int steps, const std::string& seq,
                       double minA, double maxA, double minB, double maxB);
 
-    // Due metodi separati per la generazione
-    void generateSequential();
-    void generateParallel();
+    // Unica funzione di generazione
+    void generate();
     
-    // Metodo condiviso per il salvataggio
     void saveToPPM(const string& filename) const;
 };
 

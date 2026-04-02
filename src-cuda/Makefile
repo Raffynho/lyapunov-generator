@@ -20,7 +20,6 @@ clean:
 	del /Q /F $(TARGET) *.ppm benchmark_results.csv 2>NUL
 
 
-
 scale_compute_benchmark: all
 	@echo =======================================================
 	@echo    Starting variable size benchmark...
@@ -29,13 +28,15 @@ scale_compute_benchmark: all
 	@del /Q /F benchmark_results.csv 2>NUL
 	
 	@FOR %%k IN (500 1000 2000 4000 8000 16000 32000) DO @( \
-		echo ---> Test con densita' matematica: %%k iterazioni... & \
+		echo. & \
+		echo ---> Test con %%k iterazioni & \
 		FOR /L %%i IN (1, 1, $(RUNS)) DO @( \
 			echo      Esecuzione %%i di $(RUNS)... & \
 			$(TARGET) "Iter_%%k" 2048 2048 ABBA %%k %%k > NUL \
 		) \
 	)
 	
+	@echo.
 	@echo =======================================================
 	@echo    Benchmark completato! Dati in benchmark_results.csv
 	@echo =======================================================

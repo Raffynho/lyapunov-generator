@@ -209,7 +209,9 @@ All'interno della direttiva di OpenMP esiste l'opzione `collapse` che permette d
 
 
 
+```{r echo=F, message=F, warning=F}
 
+```
 
 
 

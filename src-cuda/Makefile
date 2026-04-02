@@ -1,13 +1,12 @@
 # --- COMPILATORE E FLAG ---
 NVCC = nvcc
-NVCCFLAGS = -O3 -std=c++17 -allow-unsupported-compiler
+NVCCFLAGS = -O3 -std=c++17
 
 TARGET = lyapunov_cuda.exe
 SRCS = main.cu lyapunov.cu
 
-# --- VARIABILI CONFIGURABILI ---
-# Usiamo solo RUNS, i THREADS sono gestiti dai blocchi CUDA nel codice C++
-RUNS = 5
+# Variabili Configurabili
+RUNS = 100
 
 all: $(TARGET)
 
@@ -20,48 +19,23 @@ run: $(TARGET)
 clean:
 	del /Q /F $(TARGET) *.ppm benchmark_results.csv 2>NUL
 
-benchmark: all
+
+
+scale_compute_benchmark: all
 	@echo =======================================================
-	@echo    BENCHMARK SCALABILITA' CUDA
-	@echo    Ripetizioni: $(RUNS)
+	@echo    Starting variable size benchmark...
+	@echo    Risoluzione: 2048x2048 ^| Ripetizioni: $(RUNS)
 	@echo =======================================================
+	@del /Q /F benchmark_results.csv 2>NUL
 	
-	@echo.
-	@echo ---> TEST 1: Molto Leggero (10 iterazioni)
-	@FOR /L %%i IN (1, 1, $(RUNS)) DO @( echo      Esecuzione %%i di $(RUNS)... & $(TARGET) "test1" 2000 2000 AB 10 10 > NUL )
-	@if exist lyapunov_cuda.ppm move /Y lyapunov_cuda.ppm bench_1.ppm > NUL
+	@FOR %%k IN (500 1000 2000 4000 8000 16000 32000) DO @( \
+		echo ---> Test con densita' matematica: %%k iterazioni... & \
+		FOR /L %%i IN (1, 1, $(RUNS)) DO @( \
+			echo      Esecuzione %%i di $(RUNS)... & \
+			$(TARGET) "Iter_%%k" 2048 2048 ABBA %%k %%k > NUL \
+		) \
+	)
 	
-	@echo.
-	@echo ---> TEST 2: Leggero (200 iterazioni)
-	@FOR /L %%i IN (1, 1, $(RUNS)) DO @( echo      Esecuzione %%i di $(RUNS)... & $(TARGET) "test2" 2000 2000 AB 200 200 > NUL )
-	@if exist lyapunov_cuda.ppm move /Y lyapunov_cuda.ppm bench_2.ppm > NUL
-
-	@echo.
-	@echo ---> TEST 3: Medio (2.000 iterazioni)
-	@FOR /L %%i IN (1, 1, $(RUNS)) DO @( echo      Esecuzione %%i di $(RUNS)... & $(TARGET) "test3" 2000 2000 ABBA 2000 2000 > NUL )
-	@if exist lyapunov_cuda.ppm move /Y lyapunov_cuda.ppm bench_3.ppm > NUL
-
-	@echo.
-	@echo ---> TEST 4: Pesante (4.000 iterazioni)
-	@FOR /L %%i IN (1, 1, $(RUNS)) DO @( echo      Esecuzione %%i di $(RUNS)... & $(TARGET) "test4" 2000 2000 ABBBABAA 4000 4000 > NUL )
-	@if exist lyapunov_cuda.ppm move /Y lyapunov_cuda.ppm bench_4.ppm > NUL
-
-	@echo.
-	@echo ---> TEST 5: Molto Pesante (8.000 iterazioni)
-	@FOR /L %%i IN (1, 1, $(RUNS)) DO @( echo      Esecuzione %%i di $(RUNS)... & $(TARGET) "test5" 2000 2000 ABBBABAA 8000 8000 > NUL )
-	@if exist lyapunov_cuda.ppm move /Y lyapunov_cuda.ppm bench_5.ppm > NUL
-
-	@echo.
-	@echo ---> TEST 6: GPU STRESS TEST (4K - 15.000 iterazioni)
-	@FOR /L %%i IN (1, 1, $(RUNS)) DO @( echo      Esecuzione %%i di $(RUNS)... & $(TARGET) "test6_stress" 4000 4000 ABBA 15000 15000 > NUL )
-	@if exist lyapunov_cuda.ppm move /Y lyapunov_cuda.ppm bench_6_stress.ppm > NUL
-
-	@echo.
-	@echo ---> TEST 7: GPU EXTREME (8K - 30.000 iterazioni)
-	@FOR /L %%i IN (1, 1, $(RUNS)) DO @( echo      Esecuzione %%i di $(RUNS)... & $(TARGET) "test7_extreme" 8000 8000 ABBBABAA 30000 30000 > NUL )
-	@if exist lyapunov_cuda.ppm move /Y lyapunov_cuda.ppm bench_7_extreme.ppm > NUL
-	
-	@echo.
 	@echo =======================================================
-	@echo    BENCHMARK COMPLETATO! Dati accodati in benchmark_results.csv
+	@echo    Benchmark completato! Dati in benchmark_results.csv
 	@echo =======================================================

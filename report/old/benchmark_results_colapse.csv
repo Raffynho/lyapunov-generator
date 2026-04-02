@@ -1,0 +1,10 @@
+Test_Name,Threads,Width,Height,Sequence,Iterations,Time_ms,Schedule
+test,8,2000,2000,AAB,1000,8164.07,dynamic
+test,8,2000,2000,AAB,1000,8123.53,dynamic
+test,8,2000,2000,AAB,1000,8441.96,dynamic
+test,8,2000,2000,AAB,1000,8176.08,static
+test,8,2000,2000,AAB,1000,8540.13,static
+test,8,2000,2000,AAB,1000,8986.22,static
+test,8,2000,2000,AAB,1000,8431.95,guided
+test,8,2000,2000,AAB,1000,9071.13,guided
+test,8,2000,2000,AAB,1000,9432.21,guided

@@ -2,6 +2,7 @@
 
 using namespace std;
 
+// Costruttore
 LyapunovGenerator::LyapunovGenerator(int w, int h, int iter, int steps, const string& seq,
                                      double minA, double maxA, double minB, double maxB)
     : width(w), height(h), iterations(iter), lyap_steps(steps), sequence(seq),
@@ -16,12 +17,14 @@ Color LyapunovGenerator::getColor(double lambda) const {
     return {intensity, static_cast<uint8_t>(intensity / 2), static_cast<uint8_t>(255 - intensity)};
 }
 
-// === UNICO METODO DI GENERAZIONE (OpenMP) ===
+/*
+    Metodo per la generazione del frattale
+*/
 void LyapunovGenerator::generate() {
     size_t seq_len = sequence.length();
     
-    // Lo scheduling static è il più efficiente per questo frattale
-    #pragma omp parallel for schedule(guided)
+    // 
+    #pragma omp parallel for collapse(2) schedule(guided)
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             double a = min_a + (max_a - min_a) * x / width;
@@ -45,6 +48,7 @@ void LyapunovGenerator::generate() {
     }
 }
 
+// Metodo per il salvataggio dell'immagine in formato PPM
 void LyapunovGenerator::saveToPPM(const string& filename) const {
     ofstream ofs(filename);
     if (!ofs) {

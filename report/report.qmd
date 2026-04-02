@@ -64,21 +64,22 @@ In matematica i frattali di Lyaounov sono frattali biforcativi derivati da un'es
 
 Un frattale di Lyapunov e' costruito tramite la mappatura delle regioni di stabilita' e chaos, calcolati tramite l'esponente di Lyapunov $\lambda$, le zone gialle corrispondono a $\lambda < 0$ (stabilita') e quelle blu corrispondono a $\lambda < 0$ (chaos).
 
-::: {#Frattali-di-Lyapunov layout-nrow="2"}
-![](images/Lyapunov_fractal_segment.png){width="2in"}
-![AABAB](images/Lyapunov-fractal-AABAB.png){width="2in"}
-![](images/Lyapunov-fractal.png){width="2in"}
-:::
+
+
+![AB](images/lyapunov_AB.png){width="2in"}
+![AAB](images/lyapunov_AAB.png){width="2in"}
+![AABAB](images/lyapunov_AABAB.png){width="2in"}
+
 
 
 ## Algoritmo
 
 1. Scegli una stringa di A e B di qualsiasi lunghezza
-2. Costruisci la sequenza $S$ formata dalla stringa prima definita, ripetuta quante volte servisse
+2. Costruisci la sequenza $S$ formata dalla stringa prima definita, ripetuta quante volte serva
 3. Scegli un punto $(a,b) \in [0,4] \times [0,4]$ 
 4. Definisci la funzione $r_n = a$ se $S_n = A$, e $r_n = b$ se $S_n = B$
 5. Partendo da $x_0 = 0.5$ calcola le iterazioni $x_{n+1} = r_n x_n (1-x_n)$
-6. Calcola l'esponente di Lyapunov 
+6. Calcola l'esponente di Lyapunov tramite la formula:
 $$
 \lambda = \lim_{N \rightarrow \infty} \frac{1}{N} \sum_{n=1}^{N} \log \left| \frac{d x_{n+1}}{d x_n} \right| = \lim_{N \rightarrow \infty} \frac{1}{N} \sum_{n=1}^{N} \log \left| r_n (1-2x_n) \right|
 $$
@@ -86,7 +87,42 @@ $$
 8. Ripeti step (3-7) per ogni punto dell'immagine
 
 
+```{r}
+# 1. Lettura e combinazione dei 6 dataset
+df_collapse <- read_csv("data/benchmark_results_collapse.csv") %>% mutate(Schedule = "Collapse")
+df_dynamic  <- read_csv("data/benchmark_results_dynamic.csv")  %>% mutate(Schedule = "Dynamic")
+df_guided   <- read_csv("data/benchmark_results_guided.csv")   %>% mutate(Schedule = "Guided")
+df_parallel <- read_csv("data/benchmark_results_parallel.csv") %>% mutate(Schedule = "Parallel")
+df_serial   <- read_csv("data/benchmark_results_serial.csv")   %>% mutate(Schedule = "Serial")
+df_static   <- read_csv("data/benchmark_results_static.csv")   %>% mutate(Schedule = "Static")
 
+# Uniamo tutto in un unico dataframe
+df_parallel_bind <- bind_rows(df_serial, df_parallel)
+
+# 2. Calcolo Statistico: Media, Deviazione Standard, Errore Standard e Intervallo al 95%
+df_parallel_stats <- df_parallel_bind %>%
+  group_by(Test_Name, Threads, Schedule) %>%
+  summarise(
+    n = n(),                           # Numero di campioni (iterazioni)
+    mean_time = mean(Time_ms),         # Media aritmetica
+    sd_time = sd(Time_ms),             # Deviazione Standard
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    # L'Errore Standard (SE) = deviazione_standard / radice_quadrata(n)
+    se_time = sd_time / sqrt(n),
+    
+    # Moltiplicatore T di Student per il 95% di confidenza (circa 1.96 per n grandi)
+    t_score = qt(0.975, df = n - 1),
+    
+    # Margine di Errore
+    ci_margin = t_score * se_time,
+    
+    # Calcolo estremo inferiore e superiore della barra
+    ci_lower = mean_time - ci_margin,
+    ci_upper = mean_time + ci_margin
+  )
+```
 
 # OpenMP 
 
@@ -96,113 +132,124 @@ $$
 
 i tipi di schedule non cambiano significamente il risultato dei test essendo che nel codice non ci sono condizioni di uscita preliminari quindi il programma fa fare alla cpu sempre lo stesso numero di calcoli indipendentemente dalle condizioni quindi ogni computazione richiede piu' o meno lo stesso tempo e cosi' la differenza fra tipi di schedule non e' tanta
 
-
-
-
 ```{r}
-# Assicurati che il file .csv sia nella stessa cartella del report o fornisci il percorso corretto.
-data_quad <- read.csv("benchmark_results_quad_core.csv")
-data_quad %>%
-  ggplot(aes(x = factor(Iterations), y = Time_ms / 1000, fill = factor(Threads))) +
-  geom_col() +
-  facet_wrap(~ paste(Threads, "Threads")) +
-  labs(
-    title = "Tempo di Esecuzione vs Iterazioni per Numero di Thread",
-    x = "Numero di Iterazioni",
-    y = "Tempo di Esecuzione (s)"
-  ) +
-  theme(legend.position = "none") # La legenda è superflua grazie a facet_wrap
-```
-
-
-```{r}
-data_quad %>%
-  dplyr::filter(Threads %in% c(1, 8)) %>%
-  group_by(Test_Name, Threads) %>%
-  summarise(Mean_Time_s = mean(Time_ms) / 1000, .groups = 'drop') %>%
-  # Usiamo 'color' per le linee/punti e specifichiamo 'group'
-  ggplot(aes(x = reorder(Test_Name, Mean_Time_s), y = Mean_Time_s, color = factor(Threads), group = factor(Threads))) +
-  geom_line(linewidth = 1.5) + # 'linewidth' è l'argomento più recente per lo spessore
-  geom_point(size = 3) +
-  labs(
-    title = "Tempo di Esecuzione: Singlethread vs Multithread",
-    x = "Configurazione di Test",
-    y = "Tempo di Esecuzione (s)",
-    color = "Numero di Thread" # Aggiorniamo l'etichetta della legenda
-  ) +
- theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-```
-
-
-
-
-```{r echo=F, message=F, warning=F}
-data <- read.csv("benchmark_results_schedule.csv")
-
-data_mean <- data %>%
-  group_by(Test_Name, Iterations, scheduling) %>%
-  summarise(
-    Mean_Time_Seq_ms = mean(Time_Seq_ms),
-    Mean_Time_Par_ms = mean(Time_Par_ms),
-    Mean_Speedup = mean(Speedup),
-    Mean_Efficiency = mean(Efficiency),
-    .groups = "drop" # Rimuove il raggruppamento dal dataframe risultante
-  )
-
-data_mean  %>% 
-  dplyr::filter(scheduling=="static")  %>% 
-  select(Iterations, Mean_Time_Seq_ms, Mean_Time_Par_ms)  %>% 
-  pivot_longer(
-    cols = c(Mean_Time_Seq_ms, Mean_Time_Par_ms),
-    names_to = "architettura",
-    values_to = "time"
-  )  %>% 
-  mutate(architettura = if_else(architettura == "Mean_Time_Seq_ms", "Squenziale", "Parallelo"))  %>% 
-  ggplot(aes(x = factor(Iterations), y = time, fill = architettura)) + 
-  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
-  labs(
-    title = "Tempo di esecuzione medio",
-    x = "Iterazioni",
-    y = "Tempo Medio (ms)",
-    fill = "Architettura"
-  ) 
-```
-
-## Scheduling
-
-
-```{r}
-df_dynamic <- read_csv("benchmark_results_dynamic.csv") %>% mutate(Schedule = "Dynamic")
-df_guided  <- read_csv("benchmark_results_giuded.csv") %>% mutate(Schedule = "Guided")
-df_static  <- read_csv("benchmark_results_static.csv") %>% mutate(Schedule = "Static")
-
-df_combined <- bind_rows(df_dynamic, df_guided, df_static)
-
-df_combined %>%
-  ggplot(aes(x = factor(Threads), y = Time_ms, fill = Schedule)) +
-  geom_bar(stat = "identity", position = "dodge") +
+# 3. Creazione del grafico con Barre di Confidenza
+ggplot(df_parallel_stats, aes(x = Threads, y = mean_time, color = Schedule, group = Schedule)) +
+  # Aggiunta delle linee e dei punti
+  geom_line(size = 1) +
+  geom_point(size = 2.5) +
+  
+  # Aggiunta delle barre di errore (Incertezza/Intervallo di Confidenza)
+  # width controlla la larghezza delle stanghette orizzontali sulla barra
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, size = 0.8) +
+  
+  # Se ci sono test multipli, li separiamo (altrimenti togli questa riga)
   facet_wrap(~ Test_Name, scales = "free_y") +
+  
+  # Etichette e Stile
   labs(
-    title = "Confronto dei Tempi di Esecuzione per Tipo di Schedule",
+    title = "Tempo di Esecuzione per Tipo di Schedule",
+    subtitle = "Le barre rappresentano l'Intervallo di Confidenza al 95%",
     x = "Numero di Thread",
     y = "Tempo Medio di Esecuzione (ms)",
-    fill = "Tipo Schedule"
-  )
-df_combined %>%
-  ggplot(aes(x = Threads, y = Time_ms, color = Schedule, group = Schedule)) +
-  geom_line(size = 1) + 
-  geom_point(size = 2.5) +
-  facet_wrap(~ Test_Name, scales = "free_y") +
-  labs(
-    title = "Curva di Scalabilità: Tempo di Esecuzione vs Numero di Thread",
-    x = "Numero di Thread",
-    y = "Tempo Medio (ms)",
     color = "Scheduling"
+  ) + 
+  scale_x_continuous(breaks = unique(df_parallel_stats$Threads)) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray30"),
+    legend.position = "bottom"
+  )
+
+  df_filtered <- bind_rows(df_dynamic, df_guided, df_static)
+
+# 3. Calcolo di Medie e Intervalli di Confidenza al 95%
+df_stats <- df_filtered %>%
+  group_by(Test_Name, Threads, Schedule) %>%
+  summarise(
+    n = n(),                           
+    mean_time = mean(Time_ms),         
+    sd_time = sd(Time_ms),             
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    se_time = sd_time / sqrt(n),           # Errore Standard
+    t_score = qt(0.975, df = n - 1),       # T-value per confidenza al 95%
+    ci_margin = t_score * se_time,         # Margine di errore
+    ci_lower = mean_time - ci_margin,      # Estremo inferiore della barra
+    ci_upper = mean_time + ci_margin       # Estremo superiore della barra
+  )
+```
+
+## Ottimizzazioni 
+
+### Colapse
+
+Nella parallelizzazione di un programma puo' capitare che si arrivi nella situazione in cui si hanno due cicli uno all'interno dell'altro, normalmente se si aggiunge la direttiva di OpenMP si parallelizza solo il primo ciclo.
+Supponiamo ora di stare iterando su ogni pixel di una immagine e facenco una generica operazione il fatto di parallelizzare solo il primo ciclo significa che viene assegnato ad ogni thead intera una riga o colonna.
+
+
+```{c++}
+#pragma omp parallel for
+for (int y = 0; y < height; y++) {
+  for (int x = 0; x < width; x++) {
+    ...
+  }
+}
+```
+
+All'interno della direttiva di OpenMP esiste l'opzione `collapse` che permette di rendere i due cicli come un ciclo unico 
+
+```{c++}
+#pragma omp parallel for collapse(2)
+```
+
+![Comando di Colapse](images/collapse_im.png)
+
+
+
+
+
+
+
+
+
+
+
+
+### Scheduling
+
+
+```{r}
+ggplot(df_stats, aes(x = Threads, y = mean_time, color = Schedule, group = Schedule)) +
+  # Disegna le linee e i punti
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  
+  # Aggiunge le barre di confidenza al 95%
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, size = 1) +
+  
+  # Se i tuoi file contengono test multipli, scommenta la riga seguente per separarli:
+  # facet_wrap(~ Test_Name, scales = "free_y") +
+  
+  # Aggiunta di etichette, titoli e miglioramenti visivi
+  labs(
+    title = "Confronto tra Static, Dynamic e Guided",
+    subtitle = "Tempi di esecuzione medi con intervalli di confidenza (95%)",
+    x = "Numero di Thread",
+    y = "Tempo Medio di Esecuzione (ms)",
+    color = "Tipo di Schedule"
   ) +
-  # Usiamo breaks dinamici per assicurarci che l'asse X mostri i thread interi (1,2,3,4...)
-  scale_x_continuous(breaks = unique(df_combined$Threads))
+  # Forza l'asse X a mostrare numeri interi per i thread
+  scale_x_continuous(breaks = unique(df_stats$Threads)) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray30"),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold"),
+  )
 ```
 
 
@@ -210,81 +257,13 @@ df_combined %>%
 
 ## Sublinearita'
 
-```{r}
-test_selezionati <- c("res500_iter1000", "res2000_iter4000")
-df_filtered <- df_combined %>% filter(Test_Name %in% test_selezionati)
 
-df_baseline <- df_combined %>%
-  filter(Threads == 1) %>%
-  select(Test_Name, Schedule, Base_Time = Time_ms)
-
-# 4. Calcolo Speedup e **Efficienza**
-df_metrics <- df_combined %>%
-  left_join(df_baseline, by = c("Test_Name", "Schedule")) %>%
-  mutate(
-    Speedup = Base_Time / Time_ms,
-    Efficiency = Speedup / Threads     # Questa è la formula chiave!
-  )
-
-# 5. Creazione del grafico dell'Efficienza Parallela
-df_metrics %>%
-  dplyr::filter(Test_Name %in% test_selezionati) %>%
-  ggplot(aes(x = Threads, y = Efficiency, color = Schedule, group = Schedule)) +
-  geom_line(size = 1.2) + 
-  geom_point(size = 2) +
-  
-  # Linea orizzontale a Y=1 che rappresenta l'efficienza ideale (100% lineare)
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black", alpha = 0.6) +
-  
-  facet_wrap(~ Test_Name) +
-  
-  labs(
-    title = "Efficienza Parallela: Dimostrazione del Comportamento Sublineare",
-    subtitle = "La linea tratteggiata rappresenta un'efficienza ideale del 100% (scalabilità lineare)",
-    x = "Numero di Thread",
-    y = "Efficienza (1.0 = 100%)",
-    color = "Scheduling"
-  ) +
-  # Forziamo l'asse X a mostrare solo i thread reali e l'asse Y da 0 a 1.1 per chiarezza
-  scale_x_continuous(breaks = unique(df_metrics$Threads)) +
-  scale_y_continuous(limits = c(0, 1.1), labels = scales::percent_format(accuracy = 1)) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
-    plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray30"),
-    strip.text = element_text(size = 12, face = "bold"),
-    legend.position = "bottom"
-  )
-```
 
 
 ```{r echo=F, message=F, warning=F}
-data_mean  %>% 
-  select(Iterations, Mean_Speedup, scheduling) %>% 
-  pivot_longer(
-    cols = c(Iterations)
-  ) %>% 
-  ggplot(aes(x=value, y=Mean_Speedup, color = scheduling)) + 
-  geom_line() +
-  labs(
-    title = "Speedup medio",
-    x = "Numero di iterazioni",
-    y = "Speedup medio"
-  )
 
 ```
 
-```{r echo=F, message=F, warning=F}
-data_mean %>% 
-  ggplot(aes(x = factor(Iterations), y = Mean_Time_Par_ms, fill = scheduling)) + 
-  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
-  labs(
-    title = "Confronto Tempi Paralleli per Tipo di Scheduling",
-    x = "Iterazioni",
-    y = "Tempo Parallelo Medio (ms)",
-    fill = "Tipo di Scheduling"
-  )
-```
 
 
 i tipi di schedule non cambiano significamente il risultato dei test essendo che nel codice non ci sono condizioni di uscita preliminari quindi il programma fa fare alla cpu sempre lo stesso numero di calcoli indipendentemente dalle condizioni quindi ogni computazione richiede piu' o meno lo stesso tempo e cosi' la differenza fra tipi di schedule non e' tanta
@@ -303,14 +282,3 @@ i tipi di schedule non cambiano significamente il risultato dei test essendo che
 
 
 
-
-Alcuni dei frattali piu' famosi sono:
-
-| Frattale | Definizione Matematica | Caratteristica | Immagine |
-|:---|:---|:---|:---:|
-| **Insieme di Mandelbrot** | $z_{n+1} = z_n^2 + c$ | Icona del confine tra ordine e caos. | ![](images/mandelbrot.jpg) |
-| **Insieme di Julia** | $z_{n+1} = z_n^2 + c$ | Varianti spettacolari di Mandelbrot. | ![](images/julia.png) |
-| **Triangolo di Sierpiński** | Sottrazione ricorsiva | Geometria discreta autosimilare. | ![](images/sierpinski.jpg) |
-| **Fiocco di Neve di Koch** | Triangolazione lati | Perimetro infinito, area finita. | ![](images/Koch.png) |
-| **Felce di Barnsley** | IFS | Algoritmi biologici frattali. | ![](images/barnsley.jpeg) |
-| **Frattale di Lyapunov** | Esponente $\lambda$ | Stabilità in sistemi dinamici. | ![](images/lyapunov.jpg) |

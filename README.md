@@ -20,7 +20,7 @@ basta usare il comando
 make
 ```
 
-se non funziona si Windowa potrebbe essere 
+se non funziona su Windowa potrebbe essere 
 
 ```{bash}
 mingw32-make

@@ -24,7 +24,7 @@ void LyapunovGenerator::generate() {
     size_t seq_len = sequence.length();
     
     // 
-    #pragma omp parallel for collapse(2) schedule(guided)
+    #pragma omp parallel for schedule(runtime)
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             double a = min_a + (max_a - min_a) * x / width;

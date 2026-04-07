@@ -6,6 +6,9 @@ date: "03-22-2026"
 format:
   pdf:
     engine: knitr
+    fig-width: 8
+    fig-height: 6
+
 
 toc: true
 number-sections: true
@@ -87,7 +90,7 @@ $$
 8. Ripeti step (3-7) per ogni punto dell'immagine
 
 
-```{r}
+```{r echo=F, message=F, warning=F}
 # 1. Lettura e combinazione dei 6 dataset
 df_collapse <- read_csv("data/benchmark_results_collapse.csv") %>% mutate(Schedule = "Collapse")
 df_dynamic  <- read_csv("data/benchmark_results_dynamic.csv")  %>% mutate(Schedule = "Dynamic")
@@ -100,7 +103,7 @@ df_static   <- read_csv("data/benchmark_results_static.csv")   %>% mutate(Schedu
 df_parallel_bind <- bind_rows(df_serial, df_parallel)
 
 # 2. Calcolo Statistico: Media, Deviazione Standard, Errore Standard e Intervallo al 95%
-df_parallel_stats <- df_parallel_bind %>%
+df_parallel_stats <- df_parallel %>%
   group_by(Test_Name, Threads, Schedule) %>%
   summarise(
     n = n(),                           # Numero di campioni (iterazioni)
@@ -122,17 +125,51 @@ df_parallel_stats <- df_parallel_bind %>%
     ci_lower = mean_time - ci_margin,
     ci_upper = mean_time + ci_margin
   )
+
+df_collapse_stats <- df_collapse %>%
+  group_by(Test_Name, Threads, Schedule) %>%
+  summarise(
+    n = n(),                           
+    mean_time = mean(Time_ms),         
+    sd_time = sd(Time_ms),             
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    se_time = sd_time / sqrt(n),           
+    t_score = qt(0.975, df = n - 1),       
+    ci_margin = t_score * se_time,         
+    ci_lower = mean_time - ci_margin,      
+    ci_upper = mean_time + ci_margin       
+  )
+
+
+df_schedule_stats <- bind_rows(df_dynamic, df_guided, df_static) %>%
+  group_by(Test_Name, Threads, Schedule) %>%
+  summarise(
+    n = n(),                           
+    mean_time = mean(Time_ms),         
+    sd_time = sd(Time_ms),             
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    se_time = sd_time / sqrt(n),           # Errore Standard
+    t_score = qt(0.975, df = n - 1),       # T-value per confidenza al 95%
+    ci_margin = t_score * se_time,         # Margine di errore
+    ci_lower = mean_time - ci_margin,      # Estremo inferiore della barra
+    ci_upper = mean_time + ci_margin       # Estremo superiore della barra
+  )
 ```
 
 # OpenMP 
 
-```{r}
+```{r echo=F, message=F, warning=F}
 
 ```
 
 i tipi di schedule non cambiano significamente il risultato dei test essendo che nel codice non ci sono condizioni di uscita preliminari quindi il programma fa fare alla cpu sempre lo stesso numero di calcoli indipendentemente dalle condizioni quindi ogni computazione richiede piu' o meno lo stesso tempo e cosi' la differenza fra tipi di schedule non e' tanta
 
-```{r}
+```{r echo=F, message=F, warning=F}
+#| CPU: intel i7 1165G7
 # 3. Creazione del grafico con Barre di Confidenza
 ggplot(df_parallel_stats, aes(x = Threads, y = mean_time, color = Schedule, group = Schedule)) +
   # Aggiunta delle linee e dei punti
@@ -142,9 +179,6 @@ ggplot(df_parallel_stats, aes(x = Threads, y = mean_time, color = Schedule, grou
   # Aggiunta delle barre di errore (Incertezza/Intervallo di Confidenza)
   # width controlla la larghezza delle stanghette orizzontali sulla barra
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, size = 0.8) +
-  
-  # Se ci sono test multipli, li separiamo (altrimenti togli questa riga)
-  facet_wrap(~ Test_Name, scales = "free_y") +
   
   # Etichette e Stile
   labs(
@@ -162,7 +196,7 @@ ggplot(df_parallel_stats, aes(x = Threads, y = mean_time, color = Schedule, grou
     legend.position = "bottom"
   )
 
-  df_filtered <- bind_rows(df_dynamic, df_guided, df_static)
+df_filtered <- bind_rows(df_dynamic, df_guided, df_static)
 
 # 3. Calcolo di Medie e Intervalli di Confidenza al 95%
 df_stats <- df_filtered %>%
@@ -184,10 +218,9 @@ df_stats <- df_filtered %>%
 
 ## Ottimizzazioni 
 
-### Colapse
+### Collapse
 
-Nella parallelizzazione di un programma puo' capitare che si arrivi nella situazione in cui si hanno due cicli uno all'interno dell'altro, normalmente se si aggiunge la direttiva di OpenMP si parallelizza solo il primo ciclo.
-Supponiamo ora di stare iterando su ogni pixel di una immagine e facenco una generica operazione il fatto di parallelizzare solo il primo ciclo significa che viene assegnato ad ogni thead intera una riga o colonna.
+Supponiamo ad esempio di dover fare una operazione su di ogni punto all'interno di una griglia bidimensionale, naturamente nel programma ci troveremo un una situazione del genere:
 
 
 ```{c++}
@@ -199,32 +232,52 @@ for (int y = 0; y < height; y++) {
 }
 ```
 
-All'interno della direttiva di OpenMP esiste l'opzione `collapse` che permette di rendere i due cicli come un ciclo unico 
+dove abbiamo un ciclo all'interno dell'altro.
+Per parallelizzare questo codice possiamo aggiungere il comando `#pragma omp parallel for` della direttiva di `OpenMP` come mostrato nel blocco sopra ci permette di parallelizzare il ciclo for, solo pero' quello esterno questo significa che nel caso in esempio ad ogni thread viene assegnata una intera riga della griglia.
+
+All'interno della direttiva esiste il comando di `collapse(N)` che permette di parallelizzare gli `N` cicli for.
 
 ```{c++}
 #pragma omp parallel for collapse(2)
 ```
 
+Graficamente come mostrato nell'immagine:
+
 ![Comando di Colapse](images/collapse_im.png)
+
+Svolgendo dei test usando come processore `Intel i7 1165G7` otteniamo:
+
+```{r echo=F, message=F, warning=F}
+#| CPU: intel i7 1165G7
+bind_rows(df_parallel_stats, df_collapse_stats)  %>% 
+  ggplot(aes(x=Threads, y=mean_time, color=Schedule, group=Schedule)) +
+  geom_line(size=1) +
+  geom_point(size=2.5) +
+  geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=0.2, size=0.8) +
+  labs(
+    title="Tempo di Esecuzione con o senza direttiva Collapse",
+    x = "Numero di Thread",
+    y = "Tempo Medio di Esecuzione (ms)",
+    color = "Direttiva"
+  )
+
+```
+
+Nel caso specifico dei `frattali di Lyapunov` questo comando di `Colapse` non porta a prestazioni migliori.
+
+### Scheduling
+
+I tipi di chedule sono:
+
+- `Static`: le operazioni sono divise in blocci chiamati `chunk` ed assegnate ad ogni thread in modo fisso all'inizio dell'esecuzione.
+- `Dynamic`: le operazione sono divise anchesse in `chunk` solo che quando un thread finisce il chunk gliene viene assegnato uno nuvo.
+- `Guided`: simile a `Dynamic` ma i `chunk` diminuiscono di dimensione con il proseguimento del programma.
 
 
 
 ```{r echo=F, message=F, warning=F}
-
-```
-
-
-
-
-
-
-
-
-### Scheduling
-
-
-```{r}
-ggplot(df_stats, aes(x = Threads, y = mean_time, color = Schedule, group = Schedule)) +
+#| CPU: intel i7 1165G7
+ggplot(df_schedule_stats, aes(x = Threads, y = mean_time, color = Schedule, group = Schedule)) +
   # Disegna le linee e i punti
   geom_line(size = 1.2) +
   geom_point(size = 3) +
@@ -254,8 +307,45 @@ ggplot(df_stats, aes(x = Threads, y = mean_time, color = Schedule, group = Sched
   )
 ```
 
+Dal grafico si puo' vedere che il tipo di schedule piu' veloce sia `static`, almeno per numero di thread bassi, invece con l'aumentare del numero di thread non possiamo identificare uno `schedule` piu' veloce visto che le barre di confidenza si sovrappongono fra di loro.
 
+#### Chunk size
 
+```{r echo=F, message=F, warning=F}
+df_chunk <- read_csv("data/benchmark_results_chunk_size.csv") %>% 
+  mutate(
+    Chunk_Size = as.numeric(str_extract(Test_Name, "\\d+"))
+  )
+
+df_chunk_stats <- df_chunk %>%
+  group_by(Test_Name, Threads, Chunk_Size) %>%
+  summarise(
+    n = n(),                           
+    mean_time = mean(Time_ms),         
+    sd_time = sd(Time_ms),             
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    se_time = sd_time / sqrt(n),           
+    t_score = qt(0.975, df = n - 1),       
+    ci_margin = t_score * se_time,         
+    ci_lower = mean_time - ci_margin,      # Estremo inferiore della barra
+    ci_upper = mean_time + ci_margin
+  )
+
+df_chunk_stats %>%
+  ggplot(aes(x = Chunk_Size, y = mean_time)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, size = 0.8) +
+  scale_x_continuous(transform = "log2") +   
+  labs(
+    title = "Impatto del Chunk Size sulle Prestazioni",
+    subtitle = "Ricerca del bilanciamento ottimale per il partizionamento del lavoro",
+    x = "Dimensione del Chunk (elementi per thread)",
+    y = "Tempo Medio di Esecuzione (ms)"
+  )
+```
 
 ## Sublinearita'
 
@@ -284,3 +374,80 @@ i tipi di schedule non cambiano significamente il risultato dei test essendo che
 
 
 
+# Cuda 
+
+
+```{r echo=F, message=F, warning=F}
+df_cuda <- read_csv("data/benchmark_results_3060.csv") %>% mutate(GPU = "3060")
+
+df_cuda_stats <- df_cuda %>%
+  group_by(Iterations, GPU) %>%
+  summarise(
+    n = n(),                           
+    mean_time = mean(Time_CUDA_ms),         
+    sd_time = sd(Time_CUDA_ms),             
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    se_time = sd_time / sqrt(n),           
+    t_score = qt(0.975, df = n - 1),       
+    ci_margin = t_score * se_time,         
+    ci_lower = mean_time - ci_margin,      
+    ci_upper = mean_time + ci_margin       
+  )
+```
+
+
+```{r echo=F, message=F, warning=F}
+df_cuda_stats %>%
+  ggplot(aes(x = Iterations, y = mean_time, color = GPU, group = GPU)) +
+  geom_line(size = 1) +
+  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, size = 0.8) +
+  labs(
+    title = "Tempo di Esecuzione per GPU",
+    x = "Iterazioni",
+    y = "Tempo Medio di Esecuzione (ms)",
+    color = "GPU"
+  )
+
+```
+
+
+```{r echo=F, message=F, warning=F}
+df_cuda_stats %>%
+  # Calcoliamo il tempo (e i limiti di confidenza) per singola iterazione
+  mutate(
+    mean_time_per_iter = mean_time / Iterations,
+    ci_lower_iter = ci_lower / Iterations,
+    ci_upper_iter = ci_upper / Iterations
+  ) %>%
+  ggplot(aes(x = Iterations, y = mean_time_per_iter, color = GPU, group = GPU)) +
+  geom_line(linewidth = 1) + 
+  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ci_lower_iter, ymax = ci_upper_iter), width = 0.2, linewidth = 0.8) +
+  labs(
+    title = "Tempo Medio per Singola Iterazione",
+    subtitle = "Ricerca di overhead iniziale o thermal throttling",
+    x = "Numero totale di Iterazioni",
+    y = "Tempo per singola iterazione (ms)",
+    color = "GPU"
+  )
+```
+
+```{r echo=F, message=F, warning=F}
+df_cuda_stats %>%
+  ggplot(aes(x = Iterations, y = mean_time, color = GPU, group = GPU)) +
+  geom_line(linewidth = 1) + 
+  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, linewidth = 0.8) +
+  scale_x_continuous(transform = "log2") + 
+  scale_y_continuous(transform = "log2") +
+  labs(
+    title = "Tempo Medio per Singola Iterazione",
+    subtitle = "Ricerca di overhead iniziale o thermal throttling",
+    x = "Numero totale di Iterazioni",
+    y = "Tempo per singola iterazione (ms)",
+    color = "GPU"
+  )
+```

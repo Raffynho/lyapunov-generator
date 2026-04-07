@@ -66,3 +66,22 @@ scale_compute_benchmark: all
 	@echo "\n======================================================="
 	@echo "   Benchmark completato! Dati in benchmark_results.csv"
 	@echo "======================================================="
+	
+
+chunk_benchmark: all
+	@echo "======================================================="
+	@echo "   Starting CHUNK SIZE Benchmark (Static Schedule)"
+	@echo "   Risoluzione: 2000x2000 | Thread: 8 | Ripetizioni: $(RUNS)"
+	@echo "======================================================="
+	@rm -f benchmark_results.csv
+	
+	@for chunk in 1 10 50 250; do \
+		echo "\n---> Test Static Schedule con Chunk Size: $$chunk..."; \
+		for i in `seq 1 $(RUNS)`; do \
+			OMP_NUM_THREADS=8 OMP_SCHEDULE="static,$$chunk" ./$(TARGET_MAIN) "Chunk_$$chunk" 2000 2000 ABBA 2000 2000 0 > /dev/null; \
+		done; \
+	done
+	
+	@echo "\n======================================================="
+	@echo "   Benchmark completato! Dati in benchmark_results.csv"
+	@echo "======================================================="

@@ -65,14 +65,12 @@ Si considera frattale un insieme che goda di tutte o molte delle seguenti propri
 
 In matematica i frattali di Lyaounov sono frattali biforcativi derivati da un'estensione della mappa logistica in cui il grado di crescita della popolazione, $r$, commuta periodicamente tra due valori $A$ e $B$.
 
-Un frattale di Lyapunov e' costruito tramite la mappatura delle regioni di stabilita' e chaos, calcolati tramite l'esponente di Lyapunov $\lambda$, le zone gialle corrispondono a $\lambda < 0$ (stabilita') e quelle blu corrispondono a $\lambda < 0$ (chaos).
-
+Un frattale di Lyapunov e' costruito tramite la mappatura delle regioni di stabilita' e chaos, calcolati tramite l'esponente di Lyapunov $\lambda$, le zone blu corrispondono a $\lambda < 0$ (stabilita') e quelle nere corrispondono a $\lambda < 0$ (chaos).
 
 
 ![AB](images/lyapunov_AB.png){width="2in"}
 ![AAB](images/lyapunov_AAB.png){width="2in"}
 ![AABAB](images/lyapunov_AABAB.png){width="2in"}
-
 
 
 ## Algoritmo
@@ -152,21 +150,61 @@ df_schedule_stats <- bind_rows(df_dynamic, df_guided, df_static) %>%
     .groups = 'drop'
   ) %>%
   mutate(
-    se_time = sd_time / sqrt(n),           # Errore Standard
-    t_score = qt(0.975, df = n - 1),       # T-value per confidenza al 95%
-    ci_margin = t_score * se_time,         # Margine di errore
-    ci_lower = mean_time - ci_margin,      # Estremo inferiore della barra
-    ci_upper = mean_time + ci_margin       # Estremo superiore della barra
+    se_time = sd_time / sqrt(n),           
+    t_score = qt(0.975, df = n - 1),       
+    ci_margin = t_score * se_time,         
+    ci_lower = mean_time - ci_margin,      
+    ci_upper = mean_time + ci_margin       
   )
 ```
 
+{{< pagebreak >}}
+
 # OpenMP 
 
-```{r echo=F, message=F, warning=F}
+In genere quando si comepra una CPU una delle caratteristiche prese in considerazione e' il numero di `Cores` o `Threads` perche' un maggiore numero permette di fare piu' cose.
 
-```
+La generazione dei frattali, con particolare riferimento a quelli di Lyapunov, costituisce un esempio ideale per l'applicazione di tecniche di calcolo parallelo. 
+Questo deriva dal fatto che l'algoritmo può essere scomposto in una serie estremamente densa di calcoli indipendenti tra loro e caratterizzati da un alto costo computazionale.
 
-i tipi di schedule non cambiano significamente il risultato dei test essendo che nel codice non ci sono condizioni di uscita preliminari quindi il programma fa fare alla cpu sempre lo stesso numero di calcoli indipendentemente dalle condizioni quindi ogni computazione richiede piu' o meno lo stesso tempo e cosi' la differenza fra tipi di schedule non e' tanta
+Nello specifico, la generazione del frattale richiede di determinare l'esponente di Lyapunov per ogni singola coordinata all'interno di una griglia bidimensionale. 
+Questo processo presenta diverse caratteristiche che favoriscono l'ottimizzazione tramite `OpenMP`
+
+## Metodologia di test
+
+### CPU
+
+I test fatti per caratterizzare le prestazioni del codice sono stati eseguiti sulle seguenti CPU:
+
+Name | Model | Cores | Threads | Clock speed | Cache 
+--- | ----- | ----- | ------- | ----- | ----
+Intel i7 | 1165G7 | 4 | 8 | 2.8 GHz | ...
+Ryzen 5 | 1600 | 6 | 12 | 3.5 GHz | ...
+Intel Core Ultra 7 | 255H | 8 | 16 | ... 
+
+Tutti test preliminari, soprattutto per l'ottimizzazione del codice, come CPU verra' usata `Intel i7 1165G7` ma per i risultati piu' generali verranno usate anche le altre per confrontare i risultati finali.
+Comunque in ogni caso in ogni grafico verraa' specificata la CPU usata.
+
+### Bentchmark
+
+Essendo abbastanza difficoltoso eseguire il programma centinaia di volte variando i parametri di test, all'interno del `Makefile` sono configurati dei comandi che permetto di di fare tutto cio' molto facilmente.
+
+Nello specifico i comandi sono:
+
+- `Thread bentchmark`: tendo il numero di iterazioni e risoluzione fisse impone il numero di thread al programma da usare
+- `Iteration bentchmark`: tenendo risoluzione e numero di thread fissi impone il numero di iterazioni da usare
+- `Chunk bentchmark`: tenendo risoluzione, numero di iterazioni e nuemro di thread fissi cambia la dimensione dei chunk
+
+Benchmark | Resolution | Iteration | # Threads | Chunk size | Sequence 
+--- | --- | --- | --- | --- | ---
+thread_cout_benchmark | 2048x2048 | 800 | $2^n$| default | ABBA
+scale_compute_benchmark | 2048x2048 | (500 1000 2000 4000 8000) | max | default | ABBA
+chunk_benchmark | 2048x2048 | 800 | max | (1 10 50 250) | ABBA
+
+I bentchmark eseguono il programma 100 volte per settaggio (modificabile tramite il comando `RUNS=...`) per motivi statistici e per altri problemi che ci possono essere come il raggiungimento della `boosted clock speed` o altri fattori.
+
+
+
 
 ```{r echo=F, message=F, warning=F}
 #| CPU: intel i7 1165G7

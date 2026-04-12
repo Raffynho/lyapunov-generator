@@ -6,6 +6,8 @@
 
 Il Makefile e' configurato con compilatore di default con **g++** quindi per compilare su Windows bisona installare [Mingw](https://github.com/msys2/msys2-installer/releases/download/2026-03-22/msys2-x86_64-20260322.exe).
 
+o seguire il tutorial [qui](https://code.visualstudio.com/docs/cpp/config-mingw)
+
 Una volta installato si puo' controllare che sia andato tutto a buon fine tramite il comando:
 
 ```{bash}
@@ -21,8 +23,10 @@ Muoversi in `src-openmp` con il comando `cd` ed eseguere
 ```{bash}
 mingw32-make
 ```
-
 per compilare.
+
+se da errore per il compilatore bisogna cambiare la proma riga del Makefile `CXX = g++` cambiandola in `CXX = gcc` e provare 
+
 
 # Test 
 

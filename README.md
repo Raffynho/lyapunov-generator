@@ -4,56 +4,37 @@
 
 ## Compilatore 
 
-Il Makefile e' configurato con compilatore di default con **g++** 
+Il Makefile e' configurato con compilatore di default con **g++** quindi per compilare su Windows bisona installare [Mingw](https://github.com/msys2/msys2-installer/releases/download/2026-03-22/msys2-x86_64-20260322.exe).
+
+Una volta installato si puo' controllare che sia andato tutto a buon fine tramite il comando:
+
+```{bash}
+g++ --version
+```
 
 ## Compilare il programma 
 
-All'interno del Makefile sono configurati tutti i comandi di compilazione quindi, se configurato il compilatore, una volta navigato all'interno della giusta directory tramite il comando 
+Se si e' su windoe all'interno della cartella `src-openmp` bisogna eliminare il documento chiamato `Makefile` e rinominare quello chiamato `Makefile_windows` in `Makefile` (documento Makefile non ha estesione)
 
-```{bash}
-cd C:/Users/.../lyapunov-generator/src-cpu
-```
-
-basta usare il comando 
-
-```{bash}
-make
-```
-
-se non funziona su Windowa potrebbe essere 
+Muoversi in `src-openmp` con il comando `cd` ed eseguere 
 
 ```{bash}
 mingw32-make
 ```
 
-## Bentchmark 
-
-Il comando Bentchmark permette di eseguire una serie di comandi per automatizzare l'esecuzione del programma 
-
-```{bash}
-make bentchmark
-```
+per compilare.
 
 # Test 
 
-All'interno del makefile sono presenti dei flag per modificare in numero di thread usati per l'esecuzione quindi per fare il test ne varieremo il numero per vedere come cambiano le prestazioni
+Ci sono due test da fare `thread_count_bentchmark` e `scale_compute_benchmark` (per piu' informazioni leggere report.pdf) ogni test all'interno dei benchmark viene eseguita un default di 100 volte modificabili tramite il flag `RUNS` ad esempio si puo' fare:
 
 ```{bash}
-make bentchmark THREADS=1
-make bentchmark THREADS=2
-make bentchmark THREADS=4
-make bentchmark THREADS=6
-make bentchmark THREADS=8
+mingw32-make thread_count_benchmark RUNS=50
 ```
-
-o 
+e dopo aver salvato il csv contenente il risultato 
 
 ```{bash}
-make bentchmark THREADS=1
-make bentchmark THREADS=2
-make bentchmark THREADS=4
-make bentchmark THREADS=6
-make bentchmark THREADS=8
+mingw32-make scale_compute_benchmark RUNS=50
 ```
 
-i risultati dei test verranno salvati in un file scv chiamato `betchmark_results.csv`
+

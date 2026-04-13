@@ -8,10 +8,11 @@ Il Makefile e' configurato con compilatore di default con **g++** quindi per com
 
 o seguire il tutorial [qui](https://code.visualstudio.com/docs/cpp/config-mingw)
 
-Una volta installato si puo' controllare che sia andato tutto a buon fine tramite il comando:
+Una volta installato si puo' controllare che sia andato tutto a buon fine tramite il comando per `g++` o `gcc`:
 
 ```{bash}
 g++ --version
+gcc --version
 ```
 
 ## Compilare il programma 

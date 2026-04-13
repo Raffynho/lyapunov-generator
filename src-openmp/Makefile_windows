@@ -31,7 +31,7 @@ thread_cout_benchmark: all
 	@echo =======================================================
 	@if exist benchmark_results.csv del /Q /F benchmark_results.csv
 	
-	@for %%t in (2 4 8 12 16 22) do @( \
+	@for %%t in (2 4 8 12 16 22 24 36) do @( \
 		echo. & echo ---> Test con %%t thread logici... & \
 		for /L %%i in (1, 1, $(RUNS)) do @( \
 			echo      Esecuzione %%i di $(RUNS)... & \

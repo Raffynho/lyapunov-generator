@@ -1,0 +1,83 @@
+CXX = g++
+CXXFLAGS =-fopenmp
+
+# Su Windows è necessario aggiungere l'estensione .exe all'eseguibile
+TARGET_MAIN = lyapunov_gen.exe
+SRCS_MAIN = main.cpp lyapunov.cpp
+
+# Flag per imporre il numero di thread da usare
+THREADS ?= 12
+# Flag per salvare l'immagine su disco (1 = Salva, 0 = Non salvare)
+SAVE_IMG ?= 0
+RUNS ?= 100
+
+all: $(TARGET_MAIN)
+
+$(TARGET_MAIN): $(SRCS_MAIN)
+	$(CXX) $(CXXFLAGS) -o $(TARGET_MAIN) $(SRCS_MAIN)
+
+run: $(TARGET_MAIN)
+	$(TARGET_MAIN)
+
+clean:
+	del /Q /F $(TARGET_MAIN) *.ppm benchmark_results.csv 2>NUL || ver >NUL
+
+.PHONY: full_benchmark thread_cout_benchmark scale_compute_benchmark chunk_benchmark
+
+thread_count_benchmark: all
+	@echo =======================================================
+	@echo    Starting constant size benchmark...
+	@echo    Risoluzione: 2048x2048 ^| Ripetizioni: $(RUNS)
+	@echo =======================================================
+	@if exist benchmark_results.csv del /Q /F benchmark_results.csv
+	
+	@for %%t in (1 2 4 6 8 12 24 48) do @( \
+		echo. & echo ---> Test con %%t thread logici... & \
+		for /L %%i in (1, 1, $(RUNS)) do @( \
+			echo      Esecuzione %%i di $(RUNS)... & \
+			set OMP_NUM_THREADS=%%t& $(TARGET_MAIN) "ConstSize_%%t_Core" 2048 2048 ABBA 800 800 0 > NUL \
+		) \
+	)
+	
+	@echo.
+	@echo =======================================================
+	@echo    Benchmark completato! Dati in benchmark_results.csv
+	@echo =======================================================
+
+scale_compute_benchmark: all
+	@echo =======================================================
+	@echo    Starting variable size benchmark...
+	@echo    Risoluzione: 2048x2048 ^| Ripetizioni: $(RUNS)
+	@echo =======================================================
+	@if exist benchmark_results.csv del /Q /F benchmark_results.csv
+	
+	@for %%k in (500 1000 2000 4000 8000) do @( \
+		echo. & echo ---> Test con densita' matematica: %%k iterazioni... & \
+		for /L %%i in (1, 1, $(RUNS)) do @( \
+			set OMP_NUM_THREADS=$(THREADS)& $(TARGET_MAIN) "Iter_%%k" 2048 2048 ABBA %%k %%k 0 > NUL \
+		) \
+	)
+
+	@echo.
+	@echo =======================================================
+	@echo    Benchmark completato! Dati in benchmark_results.csv
+	@echo =======================================================
+
+chunk_benchmark: all
+	@echo =======================================================
+	@echo    Starting CHUNK SIZE Benchmark (Static Schedule)
+	@echo    Risoluzione: 2000x2000 ^| Thread: 8 ^| Ripetizioni: $(RUNS)
+	@echo =======================================================
+	@if exist benchmark_results.csv del /Q /F benchmark_results.csv
+	
+	@for %%c in (1 10 50 250) do @( \
+		echo. & echo ---> Test Static Schedule con Chunk Size: %%c... & \
+		for /L %%i in (1, 1, $(RUNS)) do @( \
+			set OMP_NUM_THREADS=8& set OMP_SCHEDULE=static,%%c& $(TARGET_MAIN) "Chunk_%%c" 2000 2000 ABBA 2000 2000 0 > NUL \
+		) \
+	)
+	
+	@echo.
+	@echo =======================================================
+	@echo    Benchmark completato! Dati in benchmark_results.csv
+	@echo =======================================================

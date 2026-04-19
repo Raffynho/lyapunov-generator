@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <cmath>
 #include <algorithm>
-#include <chrono>
+#include <omp.h>
 
 using namespace std;
 
@@ -27,13 +27,15 @@ private:
     Color getColor(double lambda) const;
 
 public:
+    // Costuttore della classe
     LyapunovGenerator(int w, int h, int iter, int steps, const std::string& seq,
                       double minA, double maxA, double minB, double maxB);
 
-    // Unica funzione di generazione
+    // Metodo per la generazione del frattale
     void generate();
     
+    // Metodo per il savataggio dell'immagine in formato PPM
     void saveToPPM(const string& filename) const;
 };
 
-#endif // LYAPUNOV_HPP
+#endif 

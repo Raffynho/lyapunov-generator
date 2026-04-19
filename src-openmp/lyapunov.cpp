@@ -17,13 +17,11 @@ Color LyapunovGenerator::getColor(double lambda) const {
     return {intensity, static_cast<uint8_t>(intensity / 2), static_cast<uint8_t>(255 - intensity)};
 }
 
-/*
-    Metodo per la generazione del frattale
-*/
+// Metodo per la generazione del frattale
 void LyapunovGenerator::generate() {
     size_t seq_len = sequence.length();
     
-    // 
+    // static dynamic guided 
     #pragma omp parallel for schedule(runtime)
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {

@@ -1,17 +1,16 @@
 #include "lyapunov.h"
-#include <omp.h>
 
 using namespace std;
 
 int main(int argc, char* argv[]){
     // Controllo configurazione di test 
     string testLabel = (argc > 1) ? argv[1] : "Test_Manuale";
-    int width        = (argc > 2) ? stoi(argv[2]) : 800;
-    int height       = (argc > 3) ? stoi(argv[3]) : 800;
+    int width        = (argc > 2) ? stoi(argv[2]) : 2048;
+    int height       = (argc > 3) ? stoi(argv[3]) : 2048;
     string sequence  = (argc > 4) ? argv[4] : "AB";
-    int iterations   = (argc > 5) ? stoi(argv[5]) : 400;
-    int lyap_steps   = (argc > 6) ? stoi(argv[6]) : 400;
-    int save_image   = (argc > 7) ? stoi(argv[7]) : 1; 
+    int iterations   = (argc > 5) ? stoi(argv[5]) : 800;
+    int lyap_steps   = (argc > 6) ? stoi(argv[6]) : 800;
+    int save_image   = (argc > 7) ? stoi(argv[7]) : 0; 
     
     double min_a = 2.0; double max_a = 4.0;
     double min_b = 2.0; double max_b = 4.0;
@@ -19,7 +18,6 @@ int main(int argc, char* argv[]){
     // Legge il numero di thread passati dall'makefile 
     int requested_threads = omp_get_max_threads();
 
-    // Definizione dell'oggetto fractal della classe LyapunovGenerator
     LyapunovGenerator fractal(width, height, iterations, lyap_steps, sequence, min_a, max_a, min_b, max_b);
 
     // Esecuzione del metodo 

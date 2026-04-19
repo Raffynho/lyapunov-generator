@@ -1,6 +1,6 @@
 # --- COMPILATORE E FLAG ---
 NVCC = nvcc
-NVCCFLAGS = -O3 -std=c++17
+NVCCFLAGS = 
 
 TARGET = lyapunov_cuda.exe
 SRCS = main.cu lyapunov.cu

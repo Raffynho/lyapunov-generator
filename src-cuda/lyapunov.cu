@@ -1,13 +1,8 @@
 #include "lyapunov.h"
-#include <iostream>
-#include <fstream>
-#include <cmath>
-#include <chrono>
-#include <cuda_runtime.h>
 
 using namespace std;
 
-// === KERNEL CUDA ===
+// Inizializzazione Kernel di Cuda
 __global__ void lyapunovKernel(Color* d_image, int width, int height, 
                                int iterations, int lyap_steps, 
                                const char* d_seq, int seq_len,
@@ -49,7 +44,7 @@ __global__ void lyapunovKernel(Color* d_image, int width, int height,
     }
 }
 
-// === FUNZIONE WRAPPER PER LANCIARE CUDA ===
+// Funzione per 
 void runLyapunovCUDA(vector<Color>& h_image, int width, int height, 
                      int iterations, int lyap_steps, const string& sequence,
                      double min_a, double max_a, double min_b, double max_b,
@@ -87,7 +82,7 @@ void runLyapunovCUDA(vector<Color>& h_image, int width, int height,
     cudaFree(d_seq);
 }
 
-// === SALVATAGGIO IMMAGINE ===
+// Funzione per salvare l'immagine in formato PPM
 void saveToPPM(const string& filename, const vector<Color>& image, int width, int height) {
     ofstream ofs(filename);
     if (!ofs) {

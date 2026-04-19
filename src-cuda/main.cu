@@ -1,13 +1,9 @@
 #include "lyapunov.h"
-#include <iostream>
-#include <vector>
-#include <string>
-#include <fstream> // Aggiunto per poter scrivere il file CSV
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    // CORREZIONE: Ora i parametri sono sfalsati di 1 per fare spazio alla Label del test
+    
     string testLabel = (argc > 1) ? argv[1] : "Test_Manuale";
     int width        = (argc > 2) ? stoi(argv[2]) : 800;
     int height       = (argc > 3) ? stoi(argv[3]) : 800;
@@ -32,7 +28,7 @@ int main(int argc, char* argv[]) {
 
     cout << "Tempo di calcolo GPU: " << timeCudaMs << " ms" << endl;
 
-    // === SALVATAGGIO IN CSV ===
+    // Salvataggio dei dati su csv
     ofstream csvFile("benchmark_results.csv", ios::app);
     if (csvFile.is_open()) {
         csvFile.seekp(0, ios::end);
@@ -52,7 +48,7 @@ int main(int argc, char* argv[]) {
         cerr << "Errore nell'apertura del file CSV per il salvataggio dei dati!" << endl;
     }
 
-    // Salva il risultato in PPM (il Makefile si aspetta che si chiami "lyapunov_cuda.ppm" per poterlo rinominare)
+    // Salvataggio immagine in formato PPM
     saveToPPM("lyapunov_cuda.ppm", h_image, width, height);
 
     return 0;

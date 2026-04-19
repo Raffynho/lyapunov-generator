@@ -1,9 +1,15 @@
 #ifndef LYAPUNOV_CUDA_H
 #define LYAPUNOV_CUDA_H
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <fstream>
+#include <cmath>
+#include <chrono>
+#include <cuda_runtime.h>
+
 
 // Struttura colore
 struct Color {
@@ -19,4 +25,4 @@ void runLyapunovCUDA(std::vector<Color>& h_image, int width, int height,
 // Funzione per salvare l'immagine
 void saveToPPM(const std::string& filename, const std::vector<Color>& image, int width, int height);
 
-#endif // LYAPUNOV_CUDA_H
+#endif 

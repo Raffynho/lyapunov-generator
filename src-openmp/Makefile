@@ -90,6 +90,25 @@ cache_wss_benchmark: all
 	@echo "   Benchmark completato! Dati in benchmark_results.csv"
 	@echo "======================================================="
 
+# Varia la dimensione dei chunk
+chunk_benchmark: all
+	@echo "======================================================="
+	@echo "   BENCHMARK DIMENSIONE CHUNK (Static Schedule)"
+	@echo "   Risoluzione: 2000x2000 | Thread: $(THREADS) | Ripetizioni: $(RUNS)"
+	@echo "======================================================="
+	@rm -f benchmark_results.csv
+	
+	@for chunk in 1 16 64 256 512; do \
+			echo "\n---> Test con Chunk Size: $$chunk..."; \
+			for i in `seq 1 $(RUNS)`; do \
+				./$(TARGET_MAIN) "Chunk_$$chunk" 2048 2048 ABBA 800 800 0 > /dev/null; \
+			done; \
+		done
+	
+	@echo "\n======================================================="
+	@echo "   Benchmark completato! Dati in benchmark_results.csv"
+	@echo "======================================================="
+
 # Come thread_count_benchmark solo che varia tipo di schedule
 schedule_benchmark: all
 	@echo "======================================================="

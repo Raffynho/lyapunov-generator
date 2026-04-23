@@ -119,8 +119,6 @@ Questo processo presenta diverse caratteristiche che favoriscono l'ottimizzazion
 
 ## Metodologia di test
 
-### CPU
-
 Per i test che verranno fatti la CPU usata di default e' **Intel i7 1165G7**, in alcuni casi sono state usate altre CPU ma in quel caso verra' sempre specificato.
 
 Alcune caratteristche delle CPU usate sono:
@@ -131,7 +129,7 @@ Intel i7 | 1165G7 | 4 | 8 | 2.8 GHz | 4.7 GHz | 12 MB
 Intel i7 | 7600HQ | 4 | 8 | 2.6 GHz | 3.5 GHz | 6 MB
 
 
-### Bentchmark
+## Bentchmark
 
 Essendo abbastanza difficoltoso eseguire il programma centinaia di volte variando i parametri di test, all'interno del **Makefile** sono configurati dei comandi che permetto di di fare tutto cio' molto facilmente.
 
@@ -141,13 +139,6 @@ Nello specifico i comandi sono:
 - **Scale_compute**: tenendo constante il numero di threads cambia la dimensione del problema in modo da risucire a vedere come scala il tempo di esecuzione
 - **Chunk_size**: tenendo constante il numero di threads e il numero di iterazioni varia la dimensione dei chunk in modo da cercare di vedere come la dimensione della cache influenza il tempo di esecuzione
 - **Cache_size**: tenendo constante il numero di iterazioni vine modificata la risoluzione in modo da riuscire a vedere come la dimensionde della cache influenza il tempo di esecuzione del programma 
-
-| Caratteristica | `thread_count` | `scale_compute` | `chunk_size` |
-| :---: | :---: | :---: | :---: | :---:
-| **Parametro Variabile** | Thread logici (`2, 4, 6, 8`) | Iterazioni (`500, 1000, 2000, 4000, 8000`) | Dimensione del Chunk (`1, 10, 50, 250`) |
-| **Risoluzione** | Fissa: 2048x2048 | Fissa: 2048x2048 | Fissa: 2048x2048 |
-| **Altri Parametri Fissi** | Iterazioni: 800, Sequenza: ABBA | Thread: invariati (`$(THREADS)`), Sequenza: ABBA | Thread: 8, Iterazioni: 2000, Sequenza: ABBA |
-
 
 I bentchmark eseguono il programma 100 volte per settaggio (modificabile tramite il comando **RUNS=...**) per motivi statistici e per altri problemi che ci possono essere come il raggiungimento della **boosted clock speed** o altri fattori.
 
@@ -178,7 +169,7 @@ max_error <- max(c(diff_r, diff_g, diff_b))
 
 ![Parallelo](images/parallel.png){fig-sub2="Parallelo"}
 
-Immagini generato con le due versioni del programma
+Immagini generate con le due versioni del programma
 :::
 
 Facendo andare lo script sulle due immafini sopra (@fig-labeled) ottenendo un errore massimo di:
@@ -193,7 +184,8 @@ Come si puo' vedere dal risultato dello script le due immagini sono perfettament
 
 ## Ottimizzazioni 
 
-All'interno della direttiva di OpenMP 
+All'interno della direttiva di OpenMP si possono usare delle clausole che permetto o di ottimizzare il proprio programma o in alcuni casi di renderlo funzionanante.
+Queste clausole modificano il comportamento della direttiva principale specificandocome i dati devono essere gestiti, come i thread devono interagire e come il carico di lavoro deve essere distribuito.
 
 ### Collapse
 
@@ -262,12 +254,11 @@ bind_rows(df_parallel_stats, df_collapse_stats) %>%
   geom_point() +
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper)) +
   labs(
-    title = "Confronto Prestazioni: Direttiva Collapse",
-    subtitle = paste("Analisi su thread comuni:", paste(sort(common_threads), collapse = ", ")),
+    title = "Confronti con e senza clausola Collapse",
     x = "Numero di Thread",
-    y = "Tempo Medio di Esecuzione (s)",
+    y = "Tempo Medio di Esecuzione [s]",
     color = "Configurazione"
-  )
+  ) 
 ```
 
 Dal grafico si vede chiaramente che con l'aumentare del nuemro di threads la versione piu' veloce e' quella senza il comando collapse all'interno della direttiva.
@@ -285,11 +276,15 @@ I tipi di scheduel all'interno della direttiva di **OpenMP** sono:
 ```{r echo=F, message=F, warning=F}
 #| CPU: intel i7 1165G7
 df_schedule_stats <- read_csv("data/benchmark_results_schedule.csv") %>% 
+  mutate(
+    Time_s = Time_ms / 1000
+  ) %>% 
+  select(-Time_ms) %>%
   group_by(Test_Name, Threads, Schedule) %>%
   summarise(
     n = n(),                           
-    mean_time = mean(Time_ms),         
-    sd_time = sd(Time_ms),             
+    mean_time = mean(Time_s),         
+    sd_time = sd(Time_s),             
     .groups = 'drop'
   ) %>%
   mutate(
@@ -305,10 +300,9 @@ ggplot(df_schedule_stats, aes(x = Threads, y = mean_time, color = Schedule, grou
   geom_point() +
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper)) +
   labs(
-    title = "Confronto tra Static, Dynamic e Guided",
-    subtitle = "Tempi di esecuzione medi con intervalli di confidenza (95%)",
+    title = "Confronto fra tipi di Schedule",
     x = "Numero di Thread",
-    y = "Tempo Medio di Esecuzione (ms)",
+    y = "Tempo Medio di Esecuzione [s]",
     color = "Tipo di Schedule"
   ) +
   scale_x_continuous(breaks = unique(df_schedule_stats$Threads))
@@ -369,8 +363,6 @@ Una volta otimato il programma possiamo prendere i dati final, in particolare si
 ### Variazione del numero di threads
 
 ```{r echo=F, message=F, warning=F}
-#> 
-
 df_ryzen <- read_csv("data/benchmark_results_threads_11.csv") %>%
   mutate(
     Type = if_else(Threads == 1, "Serial", "Parallel"),
@@ -402,9 +394,10 @@ df_ryzen_stats %>%
   geom_errorbar(aes(ymin = ci, ymax = ci_upper)) +
   scale_x_continuous(breaks = df_ryzen_stats$Threads) +
   labs(
-    title = "Tempo medio di esecuzione in funzione del numero di thread",
+    title = "Tempo di Esecuzione in funzione del Numero di Thread",
     x = "Numero di Threads",
-    y = "Tempo Medio di Esecuzione (s)"
+    y = "Tempo Medio di Esecuzione [s]",
+    color = "Modalità"
   )
 ```
 
@@ -415,9 +408,14 @@ Dal grafico possiamo vedere che il tempo di esecuzione diminuisce con l'aumentar
 
 Usando i dati ottenuti dal test mostrato sopra ci sono due metriche che possiamo calcolare:
 
-- **Speedup**:
+**Speedup** come: 
+$$ 
+Spu = \frac{T_{seq}}{T_{par}} 
 $$
- Spu = \frac{T_{seq}}{T_{par}} 
+
+ed **Efficienza** come: 
+$$ 
+Eff = \frac{Spu}{Threads} 
 $$
 
 ```{r echo=F, message=F, warning=F} 
@@ -449,11 +447,11 @@ plot_speedup <- ggplot(df_metrics, aes(x = Threads, y = Speedup)) +
   scale_y_continuous(breaks = seq(0, max(df_metrics$Threads), by = 2)) +
   labs(
     title = "Speedup in funzione del Numero di Thread",
-    subtitle = "La linea tratteggiata rappresenta lo speedup ideale",
     x = "Numero di Thread",
     y = "Speedup",
     color = "Modalità"
-  )
+  ) + 
+  theme(legend.position = "right")
 
 plot_efficiency <- ggplot(df_metrics, aes(x = Threads, y = Efficiency)) +
   geom_hline(yintercept = 1) +
@@ -461,23 +459,14 @@ plot_efficiency <- ggplot(df_metrics, aes(x = Threads, y = Efficiency)) +
   geom_point(aes(color = Type)) +
   scale_x_continuous(breaks = df_metrics$Threads) +
   labs(
-    title = "Efficienza Parallela",
-    subtitle = "La linea tratteggiata rappresenta l'efficienza ideale (100%)",
+    title = "Efficienza in Funzione del Numero di Thread)",
     x = "Numero di Thread",
     y = "Efficienza",
     color = "Modalità"
-  )
+  ) + 
+  theme(legend.position = "right")
 
-plot_speedup 
-```
-
-- **Efficienza**:
-$$
-Eff = \frac{Spu}{Threads}
-$$
-
-```{r echo=F, message=F, warning=F}
-plot_efficiency
+plot_speedup / plot_efficiency
 ```
 
 Dal grafico dello **speedup** si puo' vedere essenzialmente quello che si vedeva nel grafico del tempo di esecuizone in funzione del numero di thread, cioe' che il tempo di esecuzione diminuisce e di conseguenza lo speedup aumenta fino a che non si creano piu' threds di quelli che la CPU usata ha.
@@ -526,9 +515,9 @@ df_scale_stats %>%
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper)) +
   scale_x_continuous(breaks = df_scale_stats$Iterations) +
   labs(
-    title = "Tempo di Esecuzione in funzione delle Iterazioni",
+    title = "Tempo di Esecuzione in funzione del Numero di Iterazioni",
     x = "Numero di Iterazioni",
-    y = "Tempo Medio di Esecuzione (s)",
+    y = "Tempo Medio di Esecuzione [s]",
     color = "CPU"
   )
 ```
@@ -576,9 +565,9 @@ df_cache_stats %>%
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper)) +
   scale_x_continuous(breaks = df_cache_stats$Height) +
   labs(
-    title = "Tempo per singola operazione in funzione della Risoluzione", 
-    x = "Altezza (Height)", # Aggiornato in base alla variabile usata
-    y = "Tempo Medio per Operazione (ns)",
+    title = "Tempo per singola Operazione in funzione della Risoluzione", 
+    x = "Altezza (Height)", 
+    y = "Tempo Medio per Operazione [ns]",
     color = "CPU" 
   )
 ```
@@ -593,8 +582,8 @@ Calcolando la dimesione delle immagini genrate alle varie risoluzioni:
 | 4096 x 4096	| ~48.00 MB
 | 8192 x 8192	| ~192.00 MB
 
-possiamo vedere che c'e' un minimo nel tepo di esecuzione della singola operazione introno alla risoluzione di **1024 x 1024** che occupa all'interno della cache allincirca **~3 MB** che sta bene all'interno della cache del processore usato per i test (**12 MB**).
-Una cosa interessante che si nota e' il fatto che anche se il pcessore ha **12 MB** di cache alla risoluzione di **2048 x 2048**, che occupa interamente la cache, abbiamo un aumento del tempo di esecuzione della singola operazione, questo perche' la cache non viene assegnata ad un solo processo qindi all'interno di essa possiamo travare dati generati da altri processa cosi' diminuendo la dimensione effettiva per il processo di interesse.
+possiamo vedere che c'e' un minimo nel tepo di esecuzione della singola operazione introno alla risoluzione di 1024 x 1024 che occupa all'interno della cache allincirca ~3 MB che sta bene all'interno della cache del processore usato per i test (12 MB).
+Una cosa interessante che si nota e' il fatto che anche se il pcessore ha 12 MB di cache alla risoluzione di 2048 x 2048, che occupa interamente la cache, abbiamo un aumento del tempo di esecuzione della singola operazione, questo perche' la cache non viene assegnata ad un solo processo qindi all'interno di essa possiamo travare dati generati da altri processa cosi' diminuendo la dimensione effettiva per il processo di interesse.
 
 Un' altra metrica utilizzabile per vedere l'influenza della dimensione della cache e' il **cache miss ratio** che essenzialmente e' il numero di volte che il processo e' dovuto andare in memoria per scrivere o leggere dati.
 
@@ -605,6 +594,7 @@ Un' altra metrica utilizzabile per vedere l'influenza della dimensione della cac
 
 Dalla tabella si riesce a vedere chiaramente che alla risoluzione piu' alta il numero di cache miss aumenta sostanzialmente.
 
+Facendo il test con una seconda PCU con una dimensione della cache minore si ottengono i seguenti risultati:
 
 ```{r echo=F, message=F, warning=F}
 df_cache_11 <- read_csv("data/benchmark_results_cache_11.csv") %>%
@@ -650,21 +640,33 @@ df_cache_stats %>%
   scale_x_continuous(breaks = df_cache_stats$Height) +
   scale_y_continuous(transform = "log10") + 
   labs(
-    title = "Tempo per singola operazione in funzione della Risoluzione", 
+    title = "Tempo per singola operazione: Confronto fra CPU", 
     x = "Altezza (Height)", 
-    y = "Tempo Medio per Operazione (ns) - Log10",
+    y = "Tempo Medio per Operazione [ns]",
     color = "CPU" 
   )
 ```
 
-Guardando la differenza fra le due CPU nel caso del **7600HQ** si vede che per le risoluzioni a cui l'altra CPU ha un minimo 
-
 Confrontando le due CPU in questo test si puo' vedere come nel caso delle risoluzioni per cui il **1165G7** ha il minimo (**1024 x 1024**) per il **7600HQ** rimane quasi costante con le altre risoluzioni, questo indicando quindi che, essendo la dimensione della cache piu' piccola rispetto al **1165G7**, il processo deve andare sempre in memoria a scrivere e leggere dati, per questo piu' lento.
 
 
-# Cuda 
+# Parallelizzazione su GPU
 
+In alcuni il livello di parallelizzazione e le prestazioni ottenute dalla CPU possono essere insufficuenti per alcune applicazioni, una alternativa puo' essere usare MPI su di un supercomputer solo che questa opzione e' difficilmente giustificabile, quindi una terza opzione e' quella di usare hardware specifico come possono essere le GPU.
 
+Con l'avvento di **Nvidia** come una delle compagnie piu' grandi del pianeta non e' sbagliato pensare che i loro prodotti siano ovunque, quindi e' naturale che il linguaggio piu' usato per programmare su GPU sia **CUDA**.
+
+Per quanto riguarda **Cuda** i suai vantaggi sono che:
+
+- Elevate prestazioni
+- Memoria condivisa
+- Uso di linguaggi standard
+- Compatibilita' su tutta la gamma di prodotti
+
+Quindi per diletto possiamo confrontare i tempi ottenuti dalle due CPU con quelli ottenuti dalla GPU con lo stesso programma semplicemnte convertito in Cuda.
+Non sono necessariamente equiparabili ma tutti e due le CPU usate sono quad core invece la GPU (Nvidia Gforce RTX 3060) ha la bellezza di **3584 cuda cores**.
+
+Quindi i risultati sono:
 
 ```{r echo=F, message=F, warning=F}
 df_scale_cuda <- read_csv("data/benchmark_results_3060.csv") %>%
@@ -698,14 +700,20 @@ df_scale_stats %>%
   geom_point() +
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper)) +
   scale_x_continuous(breaks = df_scale_stats$Iterations) +
+  theme(axis.text.x = element_text(angle = 90)) +
   labs(
-    title = "Tempo di Esecuzione in funzione delle Iterazioni",
+    title = "Confronto fra CPU e GPU",
     x = "Numero di Iterazioni",
-    y = "Tempo Medio di Esecuzione (s)",
+    y = "Tempo Medio di Esecuzione [s]",
     color = "Modalità"
   )
 ```
 
-
+Come si poteva prevedere la GPU in questo test batte le CPU nettamente, la questione e' che dipende dal tipo di calcolo che si sta facendo, nel caso dei frattali di Lyapunov viene eseguito essenzialmente il calcolo di un logaritmo un' innumerevole numero di volte quindi un caso affine alla GPU se il calcolo fosse qualcosa che richide elevata precisione, come ad esempio operazioni floting point, il distacco fra CPU e GPU sarebbe minore.
 
 # Conlusioni 
+
+Da tutti i test fatti si riesce chiaramente vedere che la parallelizzazione tramite OpenMP, nel caso dei frattali di Lyapunov, conviene in ogni caso in paritcolare usando OpenMP quello detto e' ancora piu' vero essendo che l'impementazione e' semplicemente l'aggiunta di una direttiva all'interno del codice.
+
+Anche se tramite OpenMP non si riece ad arrivare alle massime prestazini che si possono avere in assoluto, si vede chiaramente dai test fatti che a livello di prestazioni ne vale la pena, ma soprattutto conviene usare OpenMP per la poca intrusivita' all'interno del codice infatti nei casi piu' semplici basta solamente qualche linea di codice. 
+

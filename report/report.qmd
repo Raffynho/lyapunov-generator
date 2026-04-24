@@ -50,7 +50,7 @@ update_geom_defaults("abline", list(linewidth = 0.8, color = "gray50", linetype 
 
 # Introduzione 
 
-L'obbiettivo del progetto e' quello di esplorare l'ottimizzazione, per il tempo di esecuzione, di un programma sequenziale attraverso l'utilizzo delle direttive di OpenMP cercando di dimostrare la sublinearita' del programma parallelizzato.
+L'obbettivo del progetto e' quello di esplorare l'ottimizzazione, per il tempo di esecuzione, di un programma sequenziale attraverso l'utilizzo delle direttive di OpenMP cercando di dimostrare la sublinearita' del programma parallelizzato.
 In genere il calcolo di frattali si prestano molto bene alla parallelizzazione dato che sono una serie molto lunga di calcoli indipendenti fra di loro e generalmente anche costosi a livello computazionale.
 
 In particolare verranno usati i frattali di Lyapunov che e' una rappresentazione visiva della stabilita' di sistemi dinamici non lineari, la cui generazione richiede il calcolo dell'esponente di Lyapunvo per ogniuna delle coordinate all'interno della griglia bidimensionale usata per la rappresentazione del frattale.
@@ -58,8 +58,7 @@ In particolare verranno usati i frattali di Lyapunov che e' una rappresentazione
 
 # Frattali
 
-Un frattale e', intuitivamente, una figura in cui un singolo motivo viene ripetuto su scale descrescenti. 
-Come si può vedere osservando la curva di Von Koch: 
+Un frattale e', intuitivamente, una figura in cui un singolo motivo viene ripetuto su scale descrescenti, come si può vedere osservando la curva di Von Koch: 
 
 ![Curva di Von Koch](images/curva_khoc.png){width=2in}
 
@@ -73,9 +72,9 @@ Si considera frattale un insieme che goda di tutte o molte delle seguenti propri
 
 
 
-## Frattalli di Lyapunov
+## Frattali di Lyapunov
 
-In matematica i frattali di Lyaounov sono frattali biforcativi derivati da un'estensione della mappa logistica in cui il grado di crescita della popolazione, $r$, commuta periodicamente tra due valori $A$ e $B$.
+In matematica i frattali di Lyaounov sono frattali biforcativi, derivati da un'estensione della mappa logistica in cui il grado di crescita della popolazione, $r$, commuta periodicamente tra due valori $A$ e $B$.
 
 Un frattale di Lyapunov e' costruito tramite la mappatura delle regioni di stabilita' e chaos, calcolati tramite l'esponente di Lyapunov $\lambda$, le zone blu corrispondono a $\lambda < 0$ (stabilita') e quelle nere corrispondono a $\lambda < 0$ (chaos).
 
@@ -109,7 +108,7 @@ $$
 
 # OpenMP 
 
-In genere quando si comepra una CPU una delle caratteristiche prese in considerazione e' il numero di **Cores** o **Threads** perche' un maggiore numero permette di fare piu' cose.
+In genere quando si compra una CPU una delle caratteristiche prese in considerazione e' il numero di **Cores** o **Threads** perche' un maggiore numero permette di fare piu' cose.
 
 La generazione dei frattali, con particolare riferimento a quelli di Lyapunov, costituisce un esempio ideale per l'applicazione di tecniche di calcolo parallelo. 
 Questo deriva dal fatto che l'algoritmo può essere scomposto in una serie estremamente densa di calcoli indipendenti tra loro e caratterizzati da un alto costo computazionale.
@@ -131,7 +130,7 @@ Intel i7 | 7600HQ | 4 | 8 | 2.6 GHz | 3.5 GHz | 6 MB
 
 ## Bentchmark
 
-Essendo abbastanza difficoltoso eseguire il programma centinaia di volte variando i parametri di test, all'interno del **Makefile** sono configurati dei comandi che permetto di di fare tutto cio' molto facilmente.
+Essendo abbastanza difficoltoso eseguire il programma centinaia di volte variando i parametri di test, all'interno del **Makefile** sono configurati dei comandi che permetto di fare tutto cio' molto facilmente.
 
 Nello specifico i comandi sono:
 
@@ -165,31 +164,30 @@ max_error <- max(c(diff_r, diff_g, diff_b))
 ```
 
 :::{#fig-labeled layout-ncol=2 fig-pos="H"}
-![Sequenziale](images/serial.png){fig-sub1="Sequenziale"}
+![Sequenziale](images/serial.png){#fig-sequenziale width="2.8in"}
 
-![Parallelo](images/parallel.png){fig-sub2="Parallelo"}
+![Parallelo](images/parallel.png){#fig-parallelo width="2.8in"}
 
 Immagini generate con le due versioni del programma
 :::
 
-Facendo andare lo script sulle due immafini sopra (@fig-labeled) ottenendo un errore massimo di:
+Eseguendo lo script sulle due immagini sopra (@fig-labeled) si ottiene un' errore massimo di:
 
 ```{r echo=F, message=F, warning=F}
 cat("Max error: ", max_error)
 # plot(img_diff, main = "Immagine di Differenza (Nera = Identiche)")
 ```
 
-Come si puo' vedere dal risultato dello script le due immagini sono perfettamente identice, quindi si puo' continuare con lo studio delle prestazioni.
-
+Come si puo' vedere dal risultato dello script le due immagini sono perfettamente identice.
 
 ## Ottimizzazioni 
 
-All'interno della direttiva di OpenMP si possono usare delle clausole che permetto o di ottimizzare il proprio programma o in alcuni casi di renderlo funzionanante.
-Queste clausole modificano il comportamento della direttiva principale specificandocome i dati devono essere gestiti, come i thread devono interagire e come il carico di lavoro deve essere distribuito.
+All'interno della direttiva di OpenMP si possono usare delle clausole che permettono di ottimizzare il proprio programma o in alcuni casi di renderlo funzionanante.
+Queste clausole modificano il comportamento della direttiva principale specificando come i dati devono essere gestiti, come i thread devono interagire e come il carico di lavoro deve essere distribuito.
 
 ### Collapse
 
-Supponiamo ad esempio di dover fare una operazione su di ogni punto all'interno di una griglia bidimensionale, naturamente nel programma ci troveremo un una situazione del genere:
+Supponiamo ad esempio di dover fare una operazione su di ogni punto all'interno di una griglia bidimensionale, naturamente nel programma ci troveremo in una situazione del genere:
 
 ```{c++}
 #pragma omp parallel for
@@ -201,7 +199,8 @@ for (int y = 0; y < height; y++) {
 ```
 
 dove abbiamo un ciclo all'interno dell'altro. 
-Per parallelizzare questo codice possiamo aggiungere il comando **#pragma omp parallel for** della direttiva di **OpenMP** come mostrato nel blocco sopra ci permette di parallelizzare il ciclo for, solo pero' quello esterno questo significa che nel caso in esempio ad ogni thread viene assegnata una intera riga della griglia.
+
+Per parallelizzare questo codice possiamo aggiungere il comando **#pragma omp parallel for** della direttiva di **OpenMP** come mostrato nel blocco sopra ci permette di parallelizzare il ciclo for, solo pero' quello esterno, questo significa che nel caso in esempio ad ogni thread viene assegnata un' intera riga della griglia.
 
 All'interno della direttiva esiste il comando di **collapse(N)** che permette di parallelizzare gli **N** cicli for.
 
@@ -209,7 +208,7 @@ All'interno della direttiva esiste il comando di **collapse(N)** che permette di
 #pragma omp parallel for collapse(2)
 ```
 
-Fandeno il test con e senza collapse otteniamo:
+Facendo il test con e senza collapse otteniamo:
 
 ```{r echo=F, message=F, warning=F}
 df_collapse_raw <- read_csv("data/benchmark_results_collapse.csv")
@@ -267,7 +266,7 @@ Dal grafico si vede chiaramente che con l'aumentare del nuemro di threads la ver
 
 Quando vengono creati i threads tramite la direttva il lavoro viene suddiviso in gruppi chiamati **chunk** ed il tipo di schedule decide in che modo vengono assegnati ai threds che poi dovranno svolgere il lavoro.
 
-I tipi di scheduel all'interno della direttiva di **OpenMP** sono:
+I tipi di schedule all'interno della direttiva di **OpenMP** sono:
 
 - **Static**: i chunk vengono divisi equamente fra i threads e vengono assegnati prima dell'inizio della parte parallela del programma 
 - **Dynamic**: i chunk vengono divisi equamente come nello static solo che i chunk vengono assegnati manmano che i thred finiscono i chunk precendenti
@@ -308,25 +307,27 @@ ggplot(df_schedule_stats, aes(x = Threads, y = mean_time, color = Schedule, grou
   scale_x_continuous(breaks = unique(df_schedule_stats$Threads))
 ```
 
-Dal grafico si vede chiaramente che tuttu i tempi di esecuzione per ogni tipo di schedule si sovrappongono quindi non fa differenza il tipo di schedule, la migliore opzione sara' quella di non spcificare alcun tipo di schedule (di default e' **dynamic**) in modo da diminuire l'overehead creato dalla direttiva.
+Dal grafico si vede chiaramente che tutti i tempi di esecuzione per ogni tipo di schedule si sovrappongono quindi non fa differenza il tipo di schedule, la migliore opzione sara' quella di non spcificare alcun tipo di schedule (di default e' **dynamic**) in modo da diminuire l'overehead creato dalla direttiva.
 
 #### Chunk size
 
-Visto che il tipo di `schedule` piu' veloce e' quello `static` un parametro che possiamo modificare e' quello del `chunk size`.
-Questo parametro nel nostro caso ci permette di modificare la dimensione del lavoro che viene assegnato ad ogni thread, di default il lavoro viene diviso in parti uguali in base al numero di thread usati.
+Scegliendo come tipi di schedule **static** o **dynamic** un fattore che si puo' modificare e' la dimensione dei chunk.
+
 
 ```{r echo=F, message=F, warning=F}
-df_chunk <- read_csv("data/benchmark_results_chunk_size.csv") %>% 
+df_chunk <- read_csv("data/benchmark_results_chunk.csv") %>% 
   mutate(
-    Chunk_Size = as.numeric(str_extract(Test_Name, "\\d+"))
-  )
+    Chunk_Size = as.numeric(str_extract(Test_Name, "\\d+")),
+    Time_s = Time_ms / 1000
+  ) %>% 
+  select(-Time_ms) 
 
 df_chunk_stats <- df_chunk %>%
   group_by(Test_Name, Threads, Chunk_Size) %>%
   summarise(
     n = n(),                           
-    mean_time = mean(Time_ms),         
-    sd_time = sd(Time_ms),             
+    mean_time = mean(Time_s),         
+    sd_time = sd(Time_s),             
     .groups = 'drop'
   ) %>%
   mutate(
@@ -338,27 +339,28 @@ df_chunk_stats <- df_chunk %>%
   )
 
 df_chunk_stats %>%
-  ggplot(aes(x = Chunk_Size, y = mean_time)) +
+  ggplot(aes(x = Chunk_Size, y = mean_time, color = "#F8776D")) +
   geom_line() +
   geom_point() +
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper)) +
-  scale_x_continuous(transform = "log2") +   
+  scale_x_continuous(breaks = df_chunk_stats$Chunk_Size) +
+  theme(legend.position = "none") +
   labs(
-    title = "Impatto del Chunk Size sulle Prestazioni",
-    subtitle = "Ricerca del bilanciamento ottimale per il partizionamento del lavoro",
-    x = "Dimensione del Chunk (elementi per thread)",
-    y = "Tempo Medio di Esecuzione (ms)"
+    title = "Tempo di esecuzione in funzione della Dimensione del Chunk",
+    x = "Dimensione del Chunk",
+    y = "Tempo Medio di Esecuzione [s]"
   )
 ```
 
-**...**
+La dimensione di default dei chunk, essendo il numero di cicli 2048 e 8 il numero di threads $\frac{2048}{8} = 255$ di chunk size.
+Ma dai dati ottenuti si vede che all'aumentare della dimensione dei chunk il tempo di esecuzione anchesso aumenta con un punto di flesso intorno a valore di default (255).
 
 ## Risultati
 
-Una volta otimato il programma possiamo prendere i dati final, in particolare si possono fare due tipi di test:
+Una volta ottimizzato il programma possiamo prendere i dati finali, in particolare si possono fare due tipi di test:
 
 - **Numero di threads**: variamo il numero di threads in modo da vedere come scala 
-- **Dimensione del problema**: variamo la dimensione del problema cosi' da vedere anchesso come scala 
+- **Dimensione del problema**: variamo la dimensione del problema cosi' da vedere anch'esso come scala 
 
 ### Variazione del numero di threads
 
@@ -459,7 +461,7 @@ plot_efficiency <- ggplot(df_metrics, aes(x = Threads, y = Efficiency)) +
   geom_point(aes(color = Type)) +
   scale_x_continuous(breaks = df_metrics$Threads) +
   labs(
-    title = "Efficienza in Funzione del Numero di Thread)",
+    title = "Efficienza in Funzione del Numero di Thread",
     x = "Numero di Thread",
     y = "Efficienza",
     color = "Modalità"
@@ -474,6 +476,8 @@ Dal grafico dello **speedup** si puo' vedere essenzialmente quello che si vedeva
 Il calcolo dell'efficenza dello speedup sono due faccie della stessa medaglia quindi le informazioni che si riescono a ricavare dall'uno e dall'altro sono le stesse, l'unica cosa in piu' che ha il calcolo dell'efficienza e' il fatto che essendo lo speedup constante nel caso di numero di threads maggiore di 8 l'efficienza continua a calare essendo che numeratore rimane costante e a denominatore il numero di threads aumenta sempre.
 
 ### Variaizone della dimensione del problema
+
+Aumentare la dimensione del problema permette di vedere come il tempo di esecuzione scala, in particolare questa prova e' utile per capire se, ad esempio, il problema scala linearmente o esponenzialmente.
 
 ```{r echo=F, message=F, warning=F}
 df_scale_8 <- read_csv("data/benchmark_results_scale_8.csv") %>%
@@ -522,11 +526,12 @@ df_scale_stats %>%
   )
 ```
 
+Nel caso dei frattali all'aumentare della dimensione del problema il tempo di esecuzione scala perfettamente linearmente.
+Si nota anche che la pendenza della retta e' un indicatore delle prestazioni del porcessore, infatti dal grafico si vede come la CPU piu' vecchia (7600HQ) ha una pendenza piu' alta rispetto alla CPU piu' recente (1165G7).
 
 ## Cache
 
-Essendo che la differenza di velocita' fra memoria e cache e' sostanziale quindi per un processo andare ad attingere all'interno della memoria comporta una diminuzione nelle prestazioni del processo.
-Infatti la dimensione della cache e le sue prestazioni sono alcune delle caratteriestiche che i produttori di CPU che stanno migliorando (almeno lato consumer dove sono piu' comuni carichi single core) un esempio puo' essere la 3D v-cache della linea Ryzen di AMD.
+Essendo la differenza di velocita' fra memoria e cache e' sostanziale quindi per un processo andare ad attingere all'interno della memoria comporta una diminuzione nelle prestazioni del processo.D.
 
 Nel caso dei frattali di Lyapunov per riuscire a vedere l'effetto della dimensione della cache quello che possiamo fare e' aumetare la risoluzione dell'immagine generata in modo che sia piu' grande della cache in modo da poter vedere un rallentamento nel tempo di esecuzione.
 
@@ -582,7 +587,7 @@ Calcolando la dimesione delle immagini genrate alle varie risoluzioni:
 | 4096 x 4096	| ~48.00 MB
 | 8192 x 8192	| ~192.00 MB
 
-possiamo vedere che c'e' un minimo nel tepo di esecuzione della singola operazione introno alla risoluzione di 1024 x 1024 che occupa all'interno della cache allincirca ~3 MB che sta bene all'interno della cache del processore usato per i test (12 MB).
+possiamo vedere che c'e' un minimo nel tempo di esecuzione della singola operazione intorno alla risoluzione di 1024 x 1024 che occupa all'interno della cache allincirca ~3 MB che sta bene all'interno della cache del processore usato per i test (12 MB).
 Una cosa interessante che si nota e' il fatto che anche se il pcessore ha 12 MB di cache alla risoluzione di 2048 x 2048, che occupa interamente la cache, abbiamo un aumento del tempo di esecuzione della singola operazione, questo perche' la cache non viene assegnata ad un solo processo qindi all'interno di essa possiamo travare dati generati da altri processa cosi' diminuendo la dimensione effettiva per il processo di interesse.
 
 Un' altra metrica utilizzabile per vedere l'influenza della dimensione della cache e' il **cache miss ratio** che essenzialmente e' il numero di volte che il processo e' dovuto andare in memoria per scrivere o leggere dati.
@@ -594,7 +599,7 @@ Un' altra metrica utilizzabile per vedere l'influenza della dimensione della cac
 
 Dalla tabella si riesce a vedere chiaramente che alla risoluzione piu' alta il numero di cache miss aumenta sostanzialmente.
 
-Facendo il test con una seconda PCU con una dimensione della cache minore si ottengono i seguenti risultati:
+Facendo il test con una seconda CPU con una dimensione della cache minore si ottengono i seguenti risultati:
 
 ```{r echo=F, message=F, warning=F}
 df_cache_11 <- read_csv("data/benchmark_results_cache_11.csv") %>%
@@ -652,7 +657,7 @@ Confrontando le due CPU in questo test si puo' vedere come nel caso delle risolu
 
 # Parallelizzazione su GPU
 
-In alcuni il livello di parallelizzazione e le prestazioni ottenute dalla CPU possono essere insufficuenti per alcune applicazioni, una alternativa puo' essere usare MPI su di un supercomputer solo che questa opzione e' difficilmente giustificabile, quindi una terza opzione e' quella di usare hardware specifico come possono essere le GPU.
+In alcuni casi il livello di parallelizzazione e le prestazioni ottenute dalla CPU possono essere insufficienti per alcune applicazioni, una alternativa puo' essere usare MPI su di un supercomputer solo che questa opzione e' difficilmente giustificabile, quindi una terza opzione e' quella di usare hardware specifico come possono essere le GPU.
 
 Con l'avvento di **Nvidia** come una delle compagnie piu' grandi del pianeta non e' sbagliato pensare che i loro prodotti siano ovunque, quindi e' naturale che il linguaggio piu' usato per programmare su GPU sia **CUDA**.
 
@@ -709,11 +714,12 @@ df_scale_stats %>%
   )
 ```
 
-Come si poteva prevedere la GPU in questo test batte le CPU nettamente, la questione e' che dipende dal tipo di calcolo che si sta facendo, nel caso dei frattali di Lyapunov viene eseguito essenzialmente il calcolo di un logaritmo un' innumerevole numero di volte quindi un caso affine alla GPU se il calcolo fosse qualcosa che richide elevata precisione, come ad esempio operazioni floting point, il distacco fra CPU e GPU sarebbe minore.
+Come si poteva prevedere la GPU in questo test batte nettamente le CPU, la questione e' che dipende dal tipo di calcolo che si sta facendo, nel caso dei frattali di Lyapunov viene eseguito essenzialmente il calcolo di un logaritmo un' innumerevole numero di volte quindi un caso affine alla GPU se il calcolo fosse qualcosa che richide elevata precisione, come ad esempio operazioni floting point, il distacco fra CPU e GPU sarebbe minore.
 
 # Conlusioni 
 
-Da tutti i test fatti si riesce chiaramente vedere che la parallelizzazione tramite OpenMP, nel caso dei frattali di Lyapunov, conviene in ogni caso in paritcolare usando OpenMP quello detto e' ancora piu' vero essendo che l'impementazione e' semplicemente l'aggiunta di una direttiva all'interno del codice.
+Da tutti i test fatti non e' difficile notare che la parallelizzazione del codice porta ad una diminuzione del tempo di esecuzione sostanziale rispetto alla versione sequenziale.
 
-Anche se tramite OpenMP non si riece ad arrivare alle massime prestazini che si possono avere in assoluto, si vede chiaramente dai test fatti che a livello di prestazioni ne vale la pena, ma soprattutto conviene usare OpenMP per la poca intrusivita' all'interno del codice infatti nei casi piu' semplici basta solamente qualche linea di codice. 
-
+Anche se OpenMP non permette di ottenere le assolute prestazini migliori dell'hardware, anche perche' esistono altri metodi che permettono un grado di parallelizzazione maggiore come puo' essere MPI o CUDA.
+Il maggiore vantaggio che OpenMP ha rispetto alle altre opzione e' la facilit' d'uso, soprattutto per i non esperti, e la poca intrusivita' all'interno del programma.
+Infatti nei casi piu' semplici, o nei problemi detti banalmente parallelizzabili, per rendere il codice parallelizzato basta giusto qualche riga di codice.

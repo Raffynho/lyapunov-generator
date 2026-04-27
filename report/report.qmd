@@ -1,6 +1,6 @@
 ---
-title: "Generatore di frattali di Lyapunov parallelizzato" 
-author: "Tommaso Raffaelli"
+title: "Generatore di Frattali di Lyapunov con Parallelizzazione tramite OpenMP" 
+author: "Tommaso Raffaelli 234813"
 date: "03-22-2026"
 
 format:
